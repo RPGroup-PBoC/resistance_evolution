@@ -3,6 +3,23 @@ using CairoMakie, CSV, DataFrames, Jedi, StanSample, Statistics, Printf, ColorSc
 plotting_style.default_makie!()
 
 
+"""
+    function plot_samples_exp(df, data, fig, i, title=nothing)
+
+Add a predictive regression plot to an existing figure.
+
+# Parameters
+------------
+- `df`: Dataframe containing posterior predictive check. Has to contain a column `y_ppc`.
+- `data`: Array. First dimension is x-coordinate, second dimension is y-coordinate.
+- `fig`: Makie Figure
+- `i`: Row to add figure in.
+- `title`: Title of the panel, default no title
+
+# Returns
+---------
+- `fig`: Updated figure
+"""
 function plot_samples_exp(df, data, fig, i, title=nothing)
     # Extract variable names
     y_ppc = filter(x -> occursin("y_ppc", String(x)), names(df))
@@ -27,6 +44,17 @@ function plot_samples_exp(df, data, fig, i, title=nothing)
 end
 
 
+"""
+    function exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
+
+Fit an exponential model to a dataset from the plate reader. Can give lower and upper bound.
+
+# Parameters
+------------
+- `file`: Filename of data. Has to be string.
+- `lower_bound`: lower bound used for inference of exponential growth model, default exp(-4).
+- `upper_bound`: lower bound used for inference of exponential growth model, default exp(-4).
+"""
 function exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
     
     dir = @__DIR__

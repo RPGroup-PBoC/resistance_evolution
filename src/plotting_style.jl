@@ -2,6 +2,15 @@ using CairoMakie
 
 fit_seq_colors = ["#607794", "#946091", "#947d60", "#609463",
     "#A7B5C9", "#C9A7C7", "#C9B9A7", "#A7C9A9"]
+
+
+"""
+    `default_makie!()`
+
+Set plotting default to that used in Physical Biology of the Cell, 2nd edition
+for the `makie` plotting library. This can be for either the GLMakie or the
+CairoMakie backends.
+"""
 function default_makie!()
     if ~isfile(assetpath("fonts", "Lucida-sans-Unicode-Regular.ttf"))
         #@warn "Lucida sans Unicode Regular font not added to Makie Fonts. Add to `~/.julia/packages/Makie/gQOQF/assets/fonts/`. Defaulting to NotoSans."
