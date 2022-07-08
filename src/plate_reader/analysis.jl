@@ -45,7 +45,7 @@ end
 
 
 """
-    function exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
+    function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
 
 Fit an exponential model to a dataset from the plate reader. Can give lower and upper bound.
 
@@ -55,7 +55,7 @@ Fit an exponential model to a dataset from the plate reader. Can give lower and 
 - `lower_bound`: lower bound used for inference of exponential growth model, default exp(-4).
 - `upper_bound`: lower bound used for inference of exponential growth model, default exp(-4).
 """
-function exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
+function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
     
     dir = @__DIR__
     home_dir = joinpath(split(dir, '/')[1:end-2]...)
@@ -210,4 +210,13 @@ function exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
 end
 
 
+"""
+    exponential_model()
+
+Use Turing.jl to fit an exponential model to growth rate data.
+"""
+function exponential_model()
+
+
+end
 

@@ -8,4 +8,8 @@ module plate_reader
 include("plate_reader.jl")
 end
 
+module inference
+include("inference.jl")
+end
+
 end # module
