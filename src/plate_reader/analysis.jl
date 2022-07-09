@@ -1,4 +1,4 @@
-using CairoMakie, CSV, DataFrames, Jedi, StanSample, Statistics, Printf, ColorSchemes, ...plotting_style
+using CairoMakie, CSV, DataFrames, Jedi, StanSample, Statistics, Printf, ColorSchemes, ...plotting_style, ...inference
 
 plotting_style.default_makie!()
 
@@ -112,22 +112,9 @@ function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
         ind2 = findfirst(t -> t > upper_bound, y)
         x_exp = x[ind1:ind2]
         y_exp = y[ind1:ind2]
-        data = Dict(
-            "N" => length(x_exp),
-            "t"=> x_exp,
-            "y"=> log.(y_exp),
-            "N_ppc"=> length(x_exp),  
-            "t_ppc"=> x_exp
-        )
 
-        # Run stan
-        stan_sample(sm; data, num_chains=4);
-        # Import results
-        df_exp_list = read_samples(sm, :dataframes)
-        # Run summary
-        stan_summary(sm)
-        # Import summary
-        summary_exp = read_summary(sm)
+        chn = inference.exponential_model.evaluate(x_exp, y_exp)
+
 
         df_exp = vcat(df_exp_list...)
 
