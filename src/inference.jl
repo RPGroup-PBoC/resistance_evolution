@@ -1,9 +1,10 @@
 
-using Distributed, CairoMakie, ...plotting_style, Jedi
+using CairoMakie, ...plotting_style, Jedi
 
 plotting_style.default_makie!()
 
 abstract type inference_model  end
+
 
 struct exponential <: inference_model
     λ_params::AbstractVector
@@ -15,29 +16,36 @@ exponential(;λ_params=[0, 0.005], y0_params=[-5, 0.5], σ_params=[-4, 2]) = exp
 
 function evaluate(
         x::T, 
-        y::T;
-        model::inference_model,
+        y::T,
+        model::inference_model;
         chains=4,
         procs=1
     ) where {T <: AbstractVector} 
-
+    #=
     if procs > 1
         # Get up to 4 workers, comment out if only one worker is wanted
         addprocs(procs - nprocs())
     end
 
     if typeof(model) == exponential
-        @everywhere include("inference/exponential_model.jl")
-    else
-
+        @everywhere begin
+            dir = @__DIR__
+            exponential() = exponential()
+            include("/$dir/inference/exponential_model.jl")
+        end
     end
-
-    mod_func = inference_model(t, y, model)
+    =#
+    # Import model
+    dir = @__DIR__
+    include("/$dir/inference/exponential_model.jl")
+    
+    # Run model
+    mod_func = inference_model(x, y, model)
     chain = sample(mod_func, NUTS(0.65), MCMCThreads(), 1000, procs)
     chains_params = Turing.MCMCChains.get_sections(chain, :parameters)
     gen = generated_quantities(mod_func, chains_params)
 
-    return chain
+    return chain, gen
 end
 
 

@@ -66,7 +66,7 @@ function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
 
     # Create file path
     file_path ="/$home_dir/processing/plate_reader/$file/growth_plate.csv"
-
+#=
     exp_stan = open("/$home_dir/stan_code/exponential_model.stan") do file
         read(file, String)
     end
@@ -77,7 +77,7 @@ function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
         mkdir("/$home_dir/processing/plate_reader/$file/stan")
     end
     sm = SampleModel("exponential_growth", exp_stan, "/$home_dir/processing/plate_reader/$file/stan")
-
+=#
     # Read output
     data_df = CSV.read(file_path, DataFrame)
     # Get wells
@@ -113,30 +113,51 @@ function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
         x_exp = x[ind1:ind2]
         y_exp = y[ind1:ind2]
 
-        chn = inference.exponential_model.evaluate(x_exp, y_exp)
+        model = inference.exponential()
+        chn, gen = inference.evaluate(x_exp, y_exp, model)
 
 
-        df_exp = vcat(df_exp_list...)
-
+        #df_exp = vcat(df_exp_list...)
+        # Don't know how to check for divergences using Turing yet
+        #=
         if summary_exp[summary_exp.parameters .== :divergent__, "mean"][1] != 0
             println("There were divergences! $(summary_exp[summary_exp.parameters .== :divergent__, "mean"][1])")
         end
+        =# 
 
         insertcols!(
             _df, 
-            :exp_growth_rate=>mean(df_exp[!, "lambda"]),
+            :exp_growth_rate=>mean(chn[:λ]),
         )
+
         append!(return_sum_df, _df)
         println(mean(_df.exp_growth_rate))
 
-        fig_exp = plot_samples_exp(df_exp, [x_exp, log.(y_exp)], fig_exp, i, "Exponential Growth: $well\n $(sub_df.strain[1])\n $(sub_df.pos_selection[1])")
+        # Prepare axes
+        ax = Axis(fig_exp[i, 1])
+        ax.xlabel = "time [min]"
+        ax.ylabel = "OD 600"
+        y_ppc = [g["y_ppc"] |> vec for g in gen]
+        print()
+        ax = Jedi.viz.predictive_regression(
+            hcat(y_ppc...),
+            x_exp,
+            ax,
+            data=[x_exp, y_exp],
+            data_kwargs=Dict(:markersize => 6)
+            )
+            
     end
-
     insertcols!(return_sum_df, 1, :run=>run)
     CSV.write("/$home_dir/processing/plate_reader/$file/gp_analysis_summary.csv", return_sum_df)
 
     save("/$home_dir/processing/plate_reader/$file/exp_model_analysis.pdf", fig_exp) 
+
+    return fig_exp
+end
+
     
+    #=
     fig = Figure(resolution=(800, 400 * (data_df.strain |> unique |> length)))
 
 
@@ -207,3 +228,4 @@ function exponential_model()
 
 end
 
+=#
