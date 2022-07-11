@@ -12,8 +12,29 @@ struct exponential <: inference_model
     σ_params::AbstractVector
 
 end
-exponential(;λ_params=[0, 0.005], y0_params=[-5, 0.5], σ_params=[-4, 2]) = exponential(λ_params, y0_params, σ_params)
+exponential(;λ_params=[0, 0.005], y0_params=[0, 0.001], σ_params=[-3, 2]) = exponential(λ_params, y0_params, σ_params)
 
+
+struct gaussian_process <: inference_model
+    α_params::AbstractVector
+    ρ_params::AbstractVector
+    σ_params::AbstractVector
+
+end
+gaussian_process(;α_params=[0., 1.], ρ_params=[2., 1.], σ_params=[0., 1.]) = gaussian_process(α_params, ρ_params, σ_params)
+
+
+"""
+    function evaluate(
+        x::T, 
+        y::T,
+        model::inference_model;
+        chains=4,
+        procs=1
+    ) where {T <: AbstractVector} 
+
+Evaluate a model on a dataset. Will support distributed computing in the future.
+"""
 function evaluate(
         x::T, 
         y::T,
@@ -41,7 +62,7 @@ function evaluate(
     
     # Run model
     mod_func = inference_model(x, y, model)
-    chain = sample(mod_func, NUTS(0.65), MCMCThreads(), 1000, procs)
+    chain = sample(mod_func, NUTS(0.65), MCMCThreads(), 1000, procs, chains=chains)
     chains_params = Turing.MCMCChains.get_sections(chain, :parameters)
     gen = generated_quantities(mod_func, chains_params)
 
