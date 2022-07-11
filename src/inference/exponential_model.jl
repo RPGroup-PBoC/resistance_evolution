@@ -9,9 +9,9 @@ using Turing, Distributions
 
     ## Priors
     # Doubling time
-    λ ~ truncated(Normal(model.λ_params...), lower=0)
+    λ ~ truncated(Normal(model.λ_params...), lower=model.λ_params[1])
     # Initial OD
-    y0 ~ truncated(Normal(model.y0_params...), lower=0)
+    y0 ~ truncated(Normal(model.y0_params...), lower=y0_params[1])
     # Standard deviation of likelihood
     σ ~ LogNormal(model.σ_params...)
 
