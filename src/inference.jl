@@ -1,33 +1,33 @@
 
-using CairoMakie, ...plotting_style, Jedi, Turing, Distributed
+using CairoMakie, ...plotting_style, Jedi, Turing
 
 plotting_style.default_makie!()
 
-@everywhere begin
-
-    abstract type abstract_model  end
 
 
-    struct exponential <: abstract_model
-        λ_params::AbstractVector
-        y0_params::AbstractVector
-        σ_params::AbstractVector
-    end
 
-    exponential(;λ_params=[0, 0.005], y0_params=[0, 0.001], σ_params=[-3, 2]) = exponential(λ_params, y0_params, σ_params)
+abstract type abstract_model  end
 
-
-    struct gaussian_process <: abstract_model
-        α_params::AbstractVector
-        ρ_params::AbstractVector
-        σ_params::AbstractVector
-        x_ppc::Vector{<:Real}
-    end
-
-    gaussian_process(x_ppc; α_params=[0., 1.], ρ_params=[0., 1.], σ_params=[0., 1.]) = gaussian_process(α_params, ρ_params, σ_params, x_ppc)
-
-    include("models.jl")
+struct exponential <: abstract_model
+    λ_params::AbstractVector
+    y0_params::AbstractVector
+    σ_params::AbstractVector
 end
+
+exponential(;λ_params=[0, 0.005], y0_params=[0, 0.001], σ_params=[-3, 2]) = exponential(λ_params, y0_params, σ_params)
+
+struct gaussian_process <: abstract_model
+    α_params::AbstractVector
+    ρ_params::AbstractVector
+    σ_params::AbstractVector
+    x_ppc::Vector{<:Real}
+end
+
+gaussian_process(x_ppc; α_params=[0., 1.], ρ_params=[0., 1.], σ_params=[0., 1.]) = gaussian_process(α_params, ρ_params, σ_params, x_ppc)
+
+include("models.jl")
+
+
 
 """
     function evaluate(
@@ -47,30 +47,10 @@ function evaluate(
         chains=4,
         procs=1
     ) where {T <: AbstractVector} 
-    #=
-    if procs > 1
-        # Get up to 4 workers, comment out if only one worker is wanted
-        addprocs(procs - nprocs())
-    end
 
-    if typeof(model) == exponential
-        @everywhere begin
-            dir = @__DIR__
-            exponential() = exponential()
-            include("/$dir/inference/exponential_model.jl")
-        end
-    end
-    =#
-    # Import model
-    dir = @__DIR__
-    if typeof(model) == exponential
-        include("/$dir/inference/exponential_model.jl")
-    elseif typeof(model) == gaussian_process
-        include("/$dir/inference/gaussian_process_model.jl")
-    end
     # Run model
     mod_func = inference_model(x, y, model)
-    chain = sample(mod_func, NUTS(0.65), MCMCThreads(), 1000, procs, chains=chains)
+    chain = sample(mod_func, NUTS(0.65), 1000, chains=chains)
     chains_params = Turing.MCMCChains.get_sections(chain, :parameters)
     gen = generated_quantities(mod_func, chains_params)
 

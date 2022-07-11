@@ -1,4 +1,33 @@
-using Turing, jlArchetype, LinearAlgebra
+using Turing, jlArchetype, LinearAlgebra, Distributions
+
+@model function inference_model(
+        t, 
+        y,
+        model::exponential     
+    )
+
+    ## Priors
+    # Doubling time
+    λ ~ truncated(Normal(model.λ_params...), lower=model.λ_params[1])
+    # Initial OD
+    y0 ~ truncated(Normal(model.y0_params...), lower=y0_params[1])
+    # Standard deviation of likelihood
+    σ ~ LogNormal(model.σ_params...)
+
+
+
+
+    # Normal Likelihood
+    y ~ Turing.MvNormal(log(y0)  .+ λ .* t, σ^2)
+    if length(t) > 1
+        y_ppc = rand(Distributions.MvNormal(log(y0)  .+ λ .* t, σ^2), 1)
+    else 
+        y_ppc = rand(Distributions.Normal.(log(y0)  .+ λ .* t, σ^2), 1)
+    end
+    # Return transformed parameters
+    return Dict("y_ppc" => exp.(y_ppc))
+end
+
 
 # This function was heavily influenced by Manuel Razo-Mejia
 @model function inference_model(
@@ -71,8 +100,8 @@ using Turing, jlArchetype, LinearAlgebra
 
     ## 2. Compute top right and bottom left matrices K₁₂, K₂₁jj
     ### 2.1 Build Kxx*
-    K_x_xs = jlArchetype.bayes.cov_exp_quad(x_data, x_ppc, α, ρ);
-    K_xs_x = jlArchetype.bayes.cov_exp_quad(x_ppc, x_data, α, ρ);
+    K_x_xs = jlArchetype.bayes.cov_exp_quad(x, x_ppc, α, ρ);
+    K_xs_x = jlArchetype.bayes.cov_exp_quad(x_ppc, x, α, ρ);
 
     ### 2.2 Initialize d1x_Kx*x and d2x_Kxx*
     d2x_K_x_xs = Matrix{Float64}(undef, N_data, N_ppc)
@@ -82,8 +111,8 @@ using Turing, jlArchetype, LinearAlgebra
     ### prefactors
     for i = 1:N_data
         for j = 1:N_ppc
-            d2x_K_x_xs[i, j] = 1 / ρ^2 * (x_data[i] - x_ppc[j]) * K_x_xs[i, j]
-            d1x_K_xs_x[j, i] = - 1 / ρ^2 * (x_ppc[j] - x_data[i]) * K_xs_x[j, i]
+            d2x_K_x_xs[i, j] = 1 / ρ^2 * (x[i] - x_ppc[j]) * K_x_xs[i, j]
+            d1x_K_xs_x[j, i] = - 1 / ρ^2 * (x_ppc[j] - x[i]) * K_xs_x[j, i]
         end # for
     end # for
 
@@ -93,7 +122,7 @@ using Turing, jlArchetype, LinearAlgebra
 
     ## 3. Solve equation Kxx * a = y
     ### 3.1 Generate covariance matrix for the data Kxx
-    K_x_x = jlArchetype.bayes.cov_exp_quad(x_data, α, ρ) .+ LinearAlgebra.I(N_data) * σ^2
+    K_x_x = jlArchetype.bayes.cov_exp_quad(x, α, ρ) .+ LinearAlgebra.I(N_data) * σ^2
 
     ### 3.2 Perform Cholesky decomposition Kxx = Lxx * Lxx'
     L_x_x = LinearAlgebra.cholesky(K_x_x).L
