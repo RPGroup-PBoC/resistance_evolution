@@ -68,7 +68,7 @@ Perform prior predictive check on a model.
 """
 function prior_check(
         model::abstract_model,
-        x::AbstractVector=[],
+        x::AbstractVector=[];
         n_samples::Int=1000
     )
     dir = @__DIR__
@@ -90,9 +90,10 @@ function prior_check(
 
     chains_params = Turing.MCMCChains.get_sections(chain, :parameters)
     gen = generated_quantities(mod_func, chains_params) |> vec
-    
+
     # Plot Results
     parameters = fieldnames(typeof(model))
+    parameters = filter(x -> occursin("_params", string(x)), parameters)
     num_params = length(parameters)
 
     # Check for prior predictive checks

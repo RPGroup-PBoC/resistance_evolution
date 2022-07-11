@@ -1,5 +1,7 @@
-using CairoMakie, CSV, DataFrames, Jedi, StanSample, Statistics, Printf, ColorSchemes, ...plotting_style, ...inference
+using CairoMakie, CSV, DataFrames, Jedi, Statistics, Printf, ColorSchemes, ...plotting_style, ...inference, LinearAlgebra, Distributions
 
+using jlArchetype
+CairoMakie.activate!()
 plotting_style.default_makie!()
 
 
@@ -83,18 +85,7 @@ function run_exponential_model(
 
     # Create file path
     file_path ="/$home_dir/processing/plate_reader/$file/growth_plate.csv"
-#=
-    exp_stan = open("/$home_dir/stan_code/exponential_model.stan") do file
-        read(file, String)
-    end
 
-    # Compile stan code
-    println("Compiling Stan files...")
-    if ~isdir("/$home_dir/processing/plate_reader/$file/stan")
-        mkdir("/$home_dir/processing/plate_reader/$file/stan")
-    end
-    sm = SampleModel("exponential_growth", exp_stan, "/$home_dir/processing/plate_reader/$file/stan")
-=#
     # Read output
     data_df = CSV.read(file_path, DataFrame)
     # Get wells
@@ -287,7 +278,7 @@ function run_gp_model(
     wells = wells
 
     # Define plotting canvas
-    fig_exp = Figure(resolution=(600, 350*length(wells)))
+    fig_exp = Figure(resolution=(900, 350*length(wells)))
 
     # Define DataFrames
     return_sum_df = DataFrames.DataFrame()
@@ -297,8 +288,12 @@ function run_gp_model(
         println(" Running well $well...")
         # Choosing data for well
         sub_df = data_df[data_df.well .== well, :]
-        x = sub_df[!, "time_min"]
-        y = sub_df[!, "OD600_norm"]
+        _x = sub_df[!, "time_min"]
+        _y = sub_df[!, "OD600_norm"]
+
+        x = _x[1:2:end]
+        y = _y[1:2:end]
+    
         
         # Create dataframe for maximum growth rate
         _df = DataFrames.DataFrame(
@@ -319,19 +314,49 @@ function run_gp_model(
             α_params = α_params,
             ρ_params = ρ_params,
             σ_params = σ_params,
-
             )
 
-        
-
         chn, gen = inference.evaluate(x_cen, y_cen, model)
+        α_arr = chn[:α].data |> vec
+        ρ_arr = chn[:ρ].data |> vec
+        σ_arr = chn[:σ].data |> vec
 
-        # Rescale y and dy
-        y_ppc = [g["y_predict"] |> vec for g in gen]
-        y_ppc = ( y .+ mean(y)) * std(y)
+        #=
+        fig = Figure(resolution=(300, 900))
+        ax1 = Axis(fig[1, 1])
+        ax1.xlabel = "α"
+        ax1.ylabel = "ECDF"
+        lines!(ax1, sort(α_arr), 1/length(α_arr):1/length(α_arr):1) 
 
-        dy_ppc = [g["dy_predict"] |> vec for g in gen]
-        dy_ppc = std(y) / std(x) .* dy_ppc
+        ax2 = Axis(fig[2, 1])
+        ax2.xlabel = "ρ"
+        ax2.ylabel = "ECDF"
+        lines!(ax2, sort(ρ_arr), 1/length(ρ_arr):1/length(ρ_arr):1)
+
+        ax3 = Axis(fig[3, 1])
+        ax3.xlabel = "σ"
+        ax3.ylabel = "ECDF"
+        lines!(ax3, sort(σ_arr), 1/length(σ_arr):1/length(σ_arr):1)
+        return fig
+        =#
+
+        y_ppc = []
+        dy_ppc = []
+        f_predict = []
+
+        for (α, ρ, σ) in zip(α_arr, ρ_arr, σ_arr)
+            _y_ppc, _dy_ppc, f_pred = gp_posterior_predictive_check(
+                x, y, model.x_ppc, α, ρ, σ
+            )
+            # Rescale y and dy
+            _y_ppc = ( _y_ppc .+ mean(y)) .* std(y)
+            _dy_ppc = std(y) ./ std(x) .* _dy_ppc
+            push!(y_ppc, _y_ppc)
+            push!(dy_ppc, _dy_ppc)
+            push!(f_predict, f_pred[1:length(x)])
+        end
+        
+        
 
         λ = [maximum(_y_ppc ./ _dy_ppc) for (_y_ppc, _dy_ppc) in zip(y_ppc, dy_ppc)]
 
@@ -359,10 +384,21 @@ function run_gp_model(
         ax2.xlabel = "time [min]"
         ax2.ylabel = "dOD 600/dt"
         
-        ax = Jedi.viz.predictive_regression(
+        ax2 = Jedi.viz.predictive_regression(
             hcat(dy_ppc...),
             x,
-            ax,
+            ax2,
+            data_kwargs=Dict(:markersize => 6)
+            )
+
+        ax3 = Axis(fig_exp[i, 3])
+        ax3.xlabel = "time [min]"
+        ax3.ylabel = "f predict"
+        
+        ax3 = Jedi.viz.predictive_regression(
+            hcat(f_predict...),
+            x,
+            ax3,
             data_kwargs=Dict(:markersize => 6)
             )
 
@@ -378,3 +414,112 @@ function run_gp_model(
     return fig_exp
 end
 
+
+function gp_posterior_predictive_check(
+    x::Vector{<:Real},
+    y::Vector{<:Real},
+    x_ppc::Vector{<:Real},
+    α::Real,
+    ρ::Real,
+    σ::Real;
+    offset::Real=10^-10
+)
+    # Define variables for evaluation
+
+    # number of data points
+    N_data = length(y)
+    # number of time points on ppc
+    N_ppc = length(x_ppc)
+
+
+    # Build necessary covariance matrices
+    ## 1. Build bottom left covariance matrix K₂₂
+    ### 1.1 Build Kx*x*
+    K_xs_xs = jlArchetype.bayes.cov_exp_quad(x_ppc, α, ρ; offset)
+
+    ### 1.2 Initialize d1x_Kx*x* and d2x_Kx*x*
+    d1x_K_xs_xs = Matrix{Float64}(undef, N_ppc, N_ppc)
+    d2x_K_xs_xs = Matrix{Float64}(undef, N_ppc, N_ppc)
+
+    ### 1.3 Inititalize dxx_Kx*x*
+    d2xx_K_xs_xs = Matrix{Float64}(undef, N_ppc, N_ppc)
+
+    ### 1.4 Compute derivatives of the matrices by multiplying by corresponding
+    ### prefactors
+    for i=1:N_ppc
+        for j=1:N_ppc
+            d1x_K_xs_xs[i, j] = -1 / ρ^2 * (x_ppc[i] - x_ppc[j]) * K_xs_xs[i, j]
+            d2x_K_xs_xs[i, j] = 1 / ρ^2 * (x_ppc[i] - x_ppc[j]) * K_xs_xs[i, j]
+            d2xx_K_xs_xs[i, j] = 1 / ρ^2 * 
+                            (1 - (x_ppc[i] - x_ppc[j])^2 / ρ^2) * K_xs_xs[i, j]
+        end # for
+    end # for
+
+    ### 1.5 Concatenate matrices
+    K_22_top = hcat(K_xs_xs, d1x_K_xs_xs');
+    K_22_bottom = hcat(d1x_K_xs_xs, d2xx_K_xs_xs);
+    K_22 = vcat(K_22_top, K_22_bottom);
+
+
+    ## 2. Compute top right and bottom left matrices K₁₂, K₂₁jj
+    ### 2.1 Build Kxx*
+    K_x_xs = jlArchetype.bayes.cov_exp_quad(x, x_ppc, α, ρ);
+    K_xs_x = jlArchetype.bayes.cov_exp_quad(x_ppc, x, α, ρ);
+
+    ### 2.2 Initialize d1x_Kx*x and d2x_Kxx*
+    d2x_K_x_xs = Matrix{Float64}(undef, N_data, N_ppc)
+    d1x_K_xs_x = Matrix{Float64}(undef, N_ppc, N_data)
+
+    ### 2.3 Compute derivative of matrices by multiplying by corresonding
+    ### prefactors
+    for i = 1:N_data
+        for j = 1:N_ppc
+            d2x_K_x_xs[i, j] = 1 / ρ^2 * (x[i] - x_ppc[j]) * K_x_xs[i, j]
+            d1x_K_xs_x[j, i] = - 1 / ρ^2 * (x_ppc[j] - x[i]) * K_xs_x[j, i]
+        end # for
+    end # for
+
+    ### 2.5 Concatenate matrices
+    K_12 = hcat(K_x_xs, d2x_K_x_xs);
+    K_21 = vcat(K_xs_x, d1x_K_xs_x);
+
+    ## 3. Solve equation Kxx * a = y
+    ### 3.1 Generate covariance matrix for the data Kxx
+    K_x_x = jlArchetype.bayes.cov_exp_quad(x, α, ρ) .+ LinearAlgebra.I(N_data) * σ^2
+
+    ### 3.2 Perform Cholesky decomposition Kxx = Lxx * Lxx'
+    L_x_x = LinearAlgebra.cholesky(K_x_x).L
+
+    ### 3.3 Solve for b = inv(Lxx) y taking advantage that Lxx is a triangular
+    ### matrix
+    b = L_x_x\y
+
+    ### 3.4 Solve a = inv(Lxx') b taking advantage that Lxx is a triangular
+    ### matrix. Recall that a = inv(Kxx) y
+    a = L_x_x'\b
+
+    ## 4. Compute conditional mean ⟨[f(x*), dx*f(x*)] | f(x)⟩
+    mean_conditional = K_21 * a
+
+    ## 5. Evaluate v = inv(Lxx) * Kxx*
+    v = L_x_x \ K_12
+
+    ## 6. Evaluate v' = inv(Lxx) * Kx*x
+    v_prime = (L_x_x \ K_21')'
+    
+    ## 7. Compute conditional covariance
+    cov_conditional = K_22 - v_prime * v .+ LinearAlgebra.I(2 * N_ppc) * offset
+
+    # Generate random samples given the conditional mean and covariance
+    f_predict = rand(Distributions.MvNormal(
+        mean_conditional, LinearAlgebra.Symmetric(cov_conditional)
+        ))
+
+    y_predict = rand(
+        Distributions.MvNormal(f_predict[1:N_ppc], σ)
+    ) 
+    dy_predict = rand(
+        Distributions.MvNormal(f_predict[N_ppc + 1:end], 1E-10)
+    )
+    return y_predict, dy_predict, f_predict
+end # @model function
