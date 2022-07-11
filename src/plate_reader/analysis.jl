@@ -45,7 +45,14 @@ end
 
 
 """
-    function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
+    function run_exponential_model(
+            file; 
+            lower_bound=exp(-4), 
+            upper_bound=exp(-2),
+            λ_params::AbstractVector=[0, 0.005],
+            y0_params::AbstractVector=[0, 0.001],
+            σ_params::AbstractVector=[-3, 2]
+        )
 
 Fit an exponential model to a dataset from the plate reader. Can give lower and upper bound.
 
@@ -53,9 +60,19 @@ Fit an exponential model to a dataset from the plate reader. Can give lower and 
 ------------
 - `file`: Filename of data. Has to be string.
 - `lower_bound`: lower bound used for inference of exponential growth model, default exp(-4).
-- `upper_bound`: lower bound used for inference of exponential growth model, default exp(-4).
+- `upper_bound`: lower bound used for inference of exponential growth model, default exp(-2).
+- `λ_params` : parameters for HalfNormal prior for growth rate, default `μ=0`, `σ=0.05`.
+- `y0_params` : parameters for HalfNormal prior for initial OD, default `μ=0`, `σ=0.001`.
+- `σ_params` : parameters for LogNormal prior for likelihood standard deviation, default `μ=-3`, `σ=2`.
 """
-function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
+function run_exponential_model(
+        file; 
+        lower_bound=exp(-4), 
+        upper_bound=exp(-2),
+        λ_params::AbstractVector=[0, 0.005],
+        y0_params::AbstractVector=[0, 0.001],
+        σ_params::AbstractVector=[-3, 2]
+    )
     
     dir = @__DIR__
     home_dir = joinpath(split(dir, '/')[1:end-2]...)
@@ -113,11 +130,13 @@ function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
         x_exp = x[ind1:ind2]
         y_exp = y[ind1:ind2]
 
-        model = inference.exponential()
-        chn, gen = inference.evaluate(x_exp, y_exp, model)
+        model = inference.exponential(
+            λ_params = λ_params, 
+            y0_params = y0_params, 
+            σ_params = σ_params
+            )
+        chn, gen = inference.evaluate(x_exp, log.(y_exp), model)
 
-
-        #df_exp = vcat(df_exp_list...)
         # Don't know how to check for divergences using Turing yet
         #=
         if summary_exp[summary_exp.parameters .== :divergent__, "mean"][1] != 0
@@ -138,7 +157,7 @@ function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
         ax.xlabel = "time [min]"
         ax.ylabel = "OD 600"
         y_ppc = [g["y_ppc"] |> vec for g in gen]
-        print()
+
         ax = Jedi.viz.predictive_regression(
             hcat(y_ppc...),
             x_exp,
@@ -146,10 +165,14 @@ function run_exponential_model(file; lower_bound=exp(-4), upper_bound=exp(-2))
             data=[x_exp, y_exp],
             data_kwargs=Dict(:markersize => 6)
             )
+        mean_λ = mean(chn[:λ])
+        mean_y0 = mean(chn[:y0]) 
+        mean_sigma = mean(chn[:σ])
+        ax.title = @sprintf "%.5f, %.5f, %.5f" mean_λ mean_y0 mean_sigma
             
     end
     insertcols!(return_sum_df, 1, :run=>run)
-    CSV.write("/$home_dir/processing/plate_reader/$file/gp_analysis_summary.csv", return_sum_df)
+    CSV.write("/$home_dir/processing/plate_reader/$file/exp_analysis_summary.csv", return_sum_df)
 
     save("/$home_dir/processing/plate_reader/$file/exp_model_analysis.pdf", fig_exp) 
 
@@ -229,3 +252,129 @@ function exponential_model()
 end
 
 =#
+
+
+"""
+    function run_gp_model(file;)
+
+Fit an gaussian process model to a dataset from the plate reader. Can give lower and upper bound.
+
+# Parameters
+------------
+- `file`: Filename of data. Has to be string.
+"""
+function run_gp_model(
+        file::AbstractString;
+        α_params::AbstractVector=[0., 1.], 
+        ρ_params::AbstractVector=[2., 1.], 
+        σ_params::AbstractVector=[0., 1.]
+    )
+    
+    dir = @__DIR__
+    home_dir = joinpath(split(dir, '/')[1:end-2]...)
+
+    # Find date
+    date = split(file, "_")[1]
+    run = split(file, "_")[2]
+
+    # Create file path
+    file_path ="/$home_dir/processing/plate_reader/$file/growth_plate.csv"
+
+    # Read output
+    data_df = CSV.read(file_path, DataFrame)
+    # Get wells
+    wells = data_df.well |> unique
+    wells = wells
+
+    # Define plotting canvas
+    fig_exp = Figure(resolution=(600, 350*length(wells)))
+
+    # Define DataFrames
+    return_sum_df = DataFrames.DataFrame()
+
+    println("Analyzing data...")
+    for (i, well) in enumerate(wells)
+        println(" Running well $well...")
+        # Choosing data for well
+        sub_df = data_df[data_df.well .== well, :]
+        x = sub_df[!, "time_min"]
+        y = sub_df[!, "OD600_norm"]
+        
+        # Create dataframe for maximum growth rate
+        _df = DataFrames.DataFrame(
+            strain=sub_df.strain |> unique, 
+            pos_selection=sub_df.pos_selection |> unique, 
+            well=well,
+        )
+
+        # Run Exponential model
+        println("  Running Gaussian Process Growth Model...")
+
+        # Center data
+        x_cen = (x .- mean(x)) ./ std(x)
+        y_cen = (y .- mean(y)) ./ std(y)
+
+        model = inference.gaussian_process(
+            x_cen,
+            α_params = α_params,
+            ρ_params = ρ_params,
+            σ_params = σ_params,
+
+            )
+
+        
+
+        chn, gen = inference.evaluate(x_cen, y_cen, model)
+
+        # Rescale y and dy
+        y_ppc = [g["y_predict"] |> vec for g in gen]
+        y_ppc = ( y .+ mean(y)) * std(y)
+
+        dy_ppc = [g["dy_predict"] |> vec for g in gen]
+        dy_ppc = std(y) / std(x) .* dy_ppc
+
+        λ = [maximum(_y_ppc ./ _dy_ppc) for (_y_ppc, _dy_ppc) in zip(y_ppc, dy_ppc)]
+
+        insertcols!(
+            _df, 
+            :growth_rate=>mean(λ),
+        )
+
+        append!(return_sum_df, _df)
+
+        # Prepare axes
+        ax = Axis(fig_exp[i, 1])
+        ax.xlabel = "time [min]"
+        ax.ylabel = "OD 600"
+
+        ax = Jedi.viz.predictive_regression(
+            hcat(y_ppc...),
+            x,
+            ax,
+            data=[x, y],
+            data_kwargs=Dict(:markersize => 6)
+            )
+
+        ax2 = Axis(fig_exp[i, 2])
+        ax2.xlabel = "time [min]"
+        ax2.ylabel = "dOD 600/dt"
+        
+        ax = Jedi.viz.predictive_regression(
+            hcat(dy_ppc...),
+            x,
+            ax,
+            data_kwargs=Dict(:markersize => 6)
+            )
+
+        mean_λ = mean(λ)
+        ax.title = @sprintf "%.5f" mean_λ 
+            
+    end
+    insertcols!(return_sum_df, 1, :run=>run)
+    CSV.write("/$home_dir/processing/plate_reader/$file/gp_analysis_summary.csv", return_sum_df)
+
+    save("/$home_dir/processing/plate_reader/$file/gp_model_analysis.pdf", fig_exp) 
+
+    return fig_exp
+end
+

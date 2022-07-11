@@ -1,34 +1,39 @@
 
-using CairoMakie, ...plotting_style, Jedi
+using CairoMakie, ...plotting_style, Jedi, Turing, Distributed
 
 plotting_style.default_makie!()
 
-abstract type inference_model  end
+@everywhere begin
+
+    abstract type abstract_model  end
 
 
-struct exponential <: inference_model
-    λ_params::AbstractVector
-    y0_params::AbstractVector
-    σ_params::AbstractVector
+    struct exponential <: abstract_model
+        λ_params::AbstractVector
+        y0_params::AbstractVector
+        σ_params::AbstractVector
+    end
 
+    exponential(;λ_params=[0, 0.005], y0_params=[0, 0.001], σ_params=[-3, 2]) = exponential(λ_params, y0_params, σ_params)
+
+
+    struct gaussian_process <: abstract_model
+        α_params::AbstractVector
+        ρ_params::AbstractVector
+        σ_params::AbstractVector
+        x_ppc::Vector{<:Real}
+    end
+
+    gaussian_process(x_ppc; α_params=[0., 1.], ρ_params=[0., 1.], σ_params=[0., 1.]) = gaussian_process(α_params, ρ_params, σ_params, x_ppc)
+
+    include("models.jl")
 end
-exponential(;λ_params=[0, 0.005], y0_params=[0, 0.001], σ_params=[-3, 2]) = exponential(λ_params, y0_params, σ_params)
-
-
-struct gaussian_process <: inference_model
-    α_params::AbstractVector
-    ρ_params::AbstractVector
-    σ_params::AbstractVector
-
-end
-gaussian_process(;α_params=[0., 1.], ρ_params=[2., 1.], σ_params=[0., 1.]) = gaussian_process(α_params, ρ_params, σ_params)
-
 
 """
     function evaluate(
         x::T, 
         y::T,
-        model::inference_model;
+        model::abstract_model;
         chains=4,
         procs=1
     ) where {T <: AbstractVector} 
@@ -38,7 +43,7 @@ Evaluate a model on a dataset. Will support distributed computing in the future.
 function evaluate(
         x::T, 
         y::T,
-        model::inference_model;
+        model::abstract_model;
         chains=4,
         procs=1
     ) where {T <: AbstractVector} 
@@ -58,8 +63,11 @@ function evaluate(
     =#
     # Import model
     dir = @__DIR__
-    include("/$dir/inference/exponential_model.jl")
-    
+    if typeof(model) == exponential
+        include("/$dir/inference/exponential_model.jl")
+    elseif typeof(model) == gaussian_process
+        include("/$dir/inference/gaussian_process_model.jl")
+    end
     # Run model
     mod_func = inference_model(x, y, model)
     chain = sample(mod_func, NUTS(0.65), MCMCThreads(), 1000, procs, chains=chains)
@@ -72,14 +80,14 @@ end
 
 """
     function prior_check(
-        model::inference_model
+        model::abstract_model
         n_samples::Int=1000
     )
 
 Perform prior predictive check on a model.
 """
 function prior_check(
-        model::inference_model,
+        model::abstract_model,
         x::AbstractVector=[],
         n_samples::Int=1000
     )
