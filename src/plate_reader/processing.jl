@@ -1,14 +1,8 @@
-using XLSX, CairoMakie, DataFrames, ColorSchemes, Dates, CSV, Statistics, ...plotting_style
+using XLSX, CairoMakie, DataFrames, ColorSchemes, Dates, CSV, Statistics, ...plotting_style, Colors
 
+CairoMakie.activate!()
 plotting_style.default_makie!()
 
-sequential_cmaps = [
-    "Blues",
-    "Reds",
-    "Greens",
-    "Oranges",
-    "Purples"
-]
 
 
 function plot_layout(file)
@@ -75,7 +69,14 @@ function plot_layout(file)
         col_dict = Dict(unique(data[!, "col"]) .=> collect(1:length(unique(data[!, "col"]))))
         data[!, "col_code"] = [col_dict[x] for x in data[!, "col"]]
         # Pivot dataframe for both code and label to generate heatmap
-        cmap = colorschemes[Symbol("$(sequential_cmaps[i])_$(max(3, length(unique(data.feature_code))))")]
+
+        # Hacky way of making nicer colormaps
+        if length(unique(data.feature_code)) > 1
+            cmap = ColorScheme(Colors.sequential_palette(rand(1:360), length(unique(data.feature_code)) * 2, w=0, c=1)[1:length(unique(data.feature_code))])
+        else
+            cmap = "white"
+        end
+        
         # Generate colormap
         if (data.feature_code |> unique |> length) > 1
             heatmap!(ax, data.col_code, data.row_code, data.feature_code, strokewidth = 1, strokecolor="black", colormap=cmap)
@@ -141,11 +142,14 @@ function pre_processing(file)
         file_path_data, 
         DataFrames.DataFrame, 
         header=false,
-        types=Dict("Column1" => Dates.Time)
         )[1:end-2,:]
 
-    time_points = measurements[!, "Column1"]
-    time_points = Dates.second.(time_points) ./60 .+ Dates.minute.(time_points) .+ 60 .* Dates.hour.(time_points)
+    time_strings = measurements[!, "Column1"]
+    time_points = Float64[]
+    for _t in time_strings
+        push!(time_points, parse(Float64, split(_t, ':')[1]) * 60 + parse(Float64, split(_t, ':')[2]) + parse(Float64, split(_t, ':')[3]) / 60)
+    end
+    
 
     temperatures = measurements[!, "Column2"]
 
@@ -166,6 +170,10 @@ function pre_processing(file)
 
     # Blank normalization
     df_blank = df[df.strain .== "blank", :]
+    OD_mean = df_blank[!, :OD600] |> mean
+    insertcols!(df, 4, :OD600_norm => df.OD600 .- OD_mean)
+    df = df[df.strain .!= "blank", :]
+    #=
     gdf = DataFrames.groupby(df_blank, [:pos_selection])
     mean_blank_df = combine(gdf, :OD600 => (x -> OD_mean=mean(x)))
     df = df[df.strain .!= "blank", :]
@@ -174,7 +182,7 @@ function pre_processing(file)
     for pos in mean_blank_df.pos_selection |> unique
         df[df.pos_selection .== pos, "OD600_norm"] = df[df.pos_selection .== pos, "OD600"] .- mean_blank_df[mean_blank_df.pos_selection .== pos, "OD600_function"][1]
     end
-
+    =#
     ##
 
     # Check if output directory exists
@@ -208,7 +216,9 @@ function pre_processing(file)
             append!(df_means, mean_df)
             lines!(ax1, mean_df.time_min, mean_df.OD_mean, label="$strain, $pos_selection")
             scatter!(ax1, mean_df.time_min, mean_df.OD_mean, markersize=5)
-            errorbars!(ax1, mean_df.time_min, mean_df.OD_mean, mean_df.OD_std)
+
+            # plot error bars more sparse
+            errorbars!(ax1, mean_df.time_min[1:5:end], mean_df.OD_mean[1:5:end], mean_df.OD_std[1:5:end])
             
             lines!(ax2, mean_df.time_min, log.(mean_df.OD_mean), label="$strain, $pos_selection")
             scatter!(ax2, mean_df.time_min, log.(mean_df.OD_mean), markersize=5)

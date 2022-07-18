@@ -1,6 +1,5 @@
 using CairoMakie, CSV, DataFrames, Jedi, Statistics, Printf, ColorSchemes, ...plotting_style, ...inference, LinearAlgebra, Distributions
 
-using jlArchetype
 CairoMakie.activate!()
 plotting_style.default_makie!()
 
@@ -73,7 +72,7 @@ function run_exponential_model(
         upper_bound=exp(-2),
         λ_params::AbstractVector=[0, 0.005],
         y0_params::AbstractVector=[0, 0.001],
-        σ_params::AbstractVector=[-3, 2]
+        σ_params::AbstractVector=[0, 0.01]
     )
     
     dir = @__DIR__
@@ -93,7 +92,7 @@ function run_exponential_model(
     wells = wells
 
     # Define plotting canvas
-    fig_exp = Figure(resolution=(300, 350*length(wells)))
+    fig_exp = Figure(resolution=(600, 350*length(wells)))
 
     # Define DataFrames
     return_sum_df = DataFrames.DataFrame()
@@ -107,8 +106,9 @@ function run_exponential_model(
         y = sub_df[!, "OD600_norm"]
         
         # Create dataframe for maximum growth rate
+        #strain, rep = split(unique(sub_df.strain, "_")[1])[1, 2]
         _df = DataFrames.DataFrame(
-            strain=sub_df.strain |> unique, 
+            strain=sub_df.strain |> unique,
             pos_selection=sub_df.pos_selection |> unique, 
             well=well,
         )
@@ -118,28 +118,24 @@ function run_exponential_model(
 
         ind1 = findfirst(t -> t > lower_bound, y)
         ind2 = findfirst(t -> t > upper_bound, y)
-        x_exp = x[ind1:ind2]
-        y_exp = y[ind1:ind2]
+        if ~isnothing(ind1) && ~isnothing(ind2)
+            x_exp = x[ind1:ind2]
+            y_exp = y[ind1:ind2]
 
-        model = inference.exponential(
-            λ_params = λ_params, 
-            y0_params = y0_params, 
-            σ_params = σ_params
+            model = inference.exponential(
+                λ_params = λ_params, 
+                y0_params = y0_params, 
+                σ_params = σ_params
+                )
+            chn, gen = inference.evaluate(x_exp, log.(y_exp), model)
+
+            insertcols!(
+                _df, 
+                :exp_growth_rate=>mean(chn[:λ]),
             )
-        chn, gen = inference.evaluate(x_exp, log.(y_exp), model)
-
-        # Don't know how to check for divergences using Turing yet
-        #=
-        if summary_exp[summary_exp.parameters .== :divergent__, "mean"][1] != 0
-            println("There were divergences! $(summary_exp[summary_exp.parameters .== :divergent__, "mean"][1])")
+        else
+            continue
         end
-        =# 
-
-        insertcols!(
-            _df, 
-            :exp_growth_rate=>mean(chn[:λ]),
-        )
-
         append!(return_sum_df, _df)
         println(mean(_df.exp_growth_rate))
 
@@ -147,6 +143,11 @@ function run_exponential_model(
         ax = Axis(fig_exp[i, 1])
         ax.xlabel = "time [min]"
         ax.ylabel = "OD 600"
+
+        ax_log = Axis(fig_exp[i, 2])
+        ax_log.xlabel = "time [min]"
+        ax_log.ylabel = "log OD 600"
+
         y_ppc = [g["y_ppc"] |> vec for g in gen]
 
         ax = Jedi.viz.predictive_regression(
@@ -156,10 +157,19 @@ function run_exponential_model(
             data=[x_exp, y_exp],
             data_kwargs=Dict(:markersize => 6)
             )
+
+        ax_log = Jedi.viz.predictive_regression(
+            log.(hcat(y_ppc...)),
+            x_exp,
+            ax_log,
+            data=[x_exp, log.(y_exp)],
+            data_kwargs=Dict(:markersize => 6)
+            )
         mean_λ = mean(chn[:λ])
         mean_y0 = mean(chn[:y0]) 
         mean_sigma = mean(chn[:σ])
-        ax.title = @sprintf "%.5f, %.5f, %.5f" mean_λ mean_y0 mean_sigma
+        ax.title = "$well, $(unique(sub_df.strain)[1]), $(unique(sub_df.pos_selection)[1])"
+        ax_log.title = @sprintf "%.5f, %.5f, %.5f" mean_λ mean_y0 mean_sigma
             
     end
     insertcols!(return_sum_df, 1, :run=>run)
@@ -244,7 +254,7 @@ end
 
 =#
 
-
+#=
 """
     function run_gp_model(file;)
 
@@ -523,3 +533,4 @@ function gp_posterior_predictive_check(
     )
     return y_predict, dy_predict, f_predict
 end # @model function
+    =#

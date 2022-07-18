@@ -14,7 +14,7 @@ struct exponential <: abstract_model
     σ_params::AbstractVector
 end
 
-exponential(;λ_params=[0, 0.005], y0_params=[0, 0.001], σ_params=[-3, 2]) = exponential(λ_params, y0_params, σ_params)
+exponential(;λ_params=[0, 0.005], y0_params=[0, 0.001], σ_params=[0, 0.1]) = exponential(λ_params, y0_params, σ_params)
 
 struct gaussian_process <: abstract_model
     α_params::AbstractVector
@@ -50,7 +50,7 @@ function evaluate(
 
     # Run model
     mod_func = inference_model(x, y, model)
-    chain = sample(mod_func, NUTS(0.65), 1000, chains=chains)
+    chain = sample(mod_func, NUTS(0.7), 10000, chains=chains)
     chains_params = Turing.MCMCChains.get_sections(chain, :parameters)
     gen = generated_quantities(mod_func, chains_params)
 
