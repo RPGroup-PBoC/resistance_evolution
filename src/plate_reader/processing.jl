@@ -1,4 +1,4 @@
-using XLSX, CairoMakie, DataFrames, ColorSchemes, Dates, CSV, Statistics, ...plotting_style, Colors
+using XLSX, CairoMakie, DataFrames, ColorSchemes, CSV, Statistics, ...plotting_style, Colors
 
 CairoMakie.activate!()
 plotting_style.default_makie!()
@@ -50,7 +50,6 @@ function plot_layout(file)
     # Loop through features
     global i=0
     for feature in layout
-        cmap = rand(sequential_cmaps)
         
         # If well, don't add information
         if (feature == "well")
@@ -147,6 +146,7 @@ function pre_processing(file)
     time_strings = measurements[!, "Column1"]
     time_points = Float64[]
     for _t in time_strings
+        _t = string(_t)
         push!(time_points, parse(Float64, split(_t, ':')[1]) * 60 + parse(Float64, split(_t, ':')[2]) + parse(Float64, split(_t, ':')[3]) / 60)
     end
     
@@ -164,6 +164,8 @@ function pre_processing(file)
         end
         if typeof(_df.strain) == Vector{Int64}
             _df.strain = string.(_df.strain)
+        elseif typeof(_df.strain) == Vector{Float64}
+            _df.strain = string.(_df.strain)
         end
         append!(df, DataFrames.dropmissing(_df))
     end
@@ -173,17 +175,7 @@ function pre_processing(file)
     OD_mean = df_blank[!, :OD600] |> mean
     insertcols!(df, 4, :OD600_norm => df.OD600 .- OD_mean)
     df = df[df.strain .!= "blank", :]
-    #=
-    gdf = DataFrames.groupby(df_blank, [:pos_selection])
-    mean_blank_df = combine(gdf, :OD600 => (x -> OD_mean=mean(x)))
-    df = df[df.strain .!= "blank", :]
-    insertcols!(df, 4, :OD600_norm => df.OD600)
 
-    for pos in mean_blank_df.pos_selection |> unique
-        df[df.pos_selection .== pos, "OD600_norm"] = df[df.pos_selection .== pos, "OD600"] .- mean_blank_df[mean_blank_df.pos_selection .== pos, "OD600_function"][1]
-    end
-    =#
-    ##
 
     # Check if output directory exists
     if ~ispath("/$home_dir/processing/plate_reader/$file")  # Check if directory exists
@@ -203,28 +195,31 @@ function pre_processing(file)
         ax1 = Axis(fig[i, 1])
         ax1.xlabel = "time [min]"
         ax1.ylabel = "normalized OD600"
+        ax1.title = "$strain"
 
         ax2 = Axis(fig[i, 2])
         ax2.xlabel = "time [min]"
         ax2.ylabel = "log(normalized OD600)"
         sub_df = df[df.strain .== strain, :]
-        for pos_selection in sub_df.pos_selection |> unique
-            sub_sub_df = sub_df[sub_df.pos_selection .== pos_selection, :]
+        insertcols!(sub_df, 1, :tc => [parse(Float64, split(x, "_")[1]) for x in sub_df.pos_selection])
+
+        for tc in sub_df.tc |>  unique |> sort
+            sub_sub_df = sub_df[sub_df.tc .== tc, :]
             _gdf = DataFrames.groupby(sub_sub_df, :time_min)
             mean_df = combine(_gdf, :OD600_norm => (x -> (OD_mean=mean(x), OD_std=std(x))) => AsTable)
-            insertcols!(mean_df, "strain"=>strain, "pos_selection"=>pos_selection)
+            insertcols!(mean_df, "strain"=>strain, "pos_selection"=>tc)
             append!(df_means, mean_df)
-            lines!(ax1, mean_df.time_min, mean_df.OD_mean, label="$strain, $pos_selection")
+            lines!(ax1, mean_df.time_min, mean_df.OD_mean, label="$tc")
             scatter!(ax1, mean_df.time_min, mean_df.OD_mean, markersize=5)
 
             # plot error bars more sparse
             errorbars!(ax1, mean_df.time_min[1:5:end], mean_df.OD_mean[1:5:end], mean_df.OD_std[1:5:end])
             
-            lines!(ax2, mean_df.time_min, log.(mean_df.OD_mean), label="$strain, $pos_selection")
+            lines!(ax2, mean_df.time_min, log.(mean_df.OD_mean), label="$tc")
             scatter!(ax2, mean_df.time_min, log.(mean_df.OD_mean), markersize=5)
             #errorbars!(ax2, mean_df.time_min, log.(mean_df.OD_mean), log.(mean_df.OD_std))
         end
-        axislegend(ax1, position=:lt)#, merge = merge, unique = unique)
+        fig[i, 3] = axislegend("tc [µg/ml]")#, merge = merge, unique = unique)
     end
 
     CSV.write("/$home_dir/processing/plate_reader/$file/growth_mean.csv", df_means)
