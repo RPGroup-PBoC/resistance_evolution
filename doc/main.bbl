@@ -1,0 +1,352 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated as
+% required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+\datalist[entry]{none/global//global/global}
+  \entry{Scott2010}{article}{}
+    \name{author}{5}{}{%
+      {{hash=SM}{%
+         family={Scott},
+         familyi={S\bibinitperiod},
+         given={Matthew},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=GCW}{%
+         family={Gunderson},
+         familyi={G\bibinitperiod},
+         given={Carl\bibnamedelima W},
+         giveni={C\bibinitperiod\bibinitdelim W\bibinitperiod},
+      }}%
+      {{hash=MEM}{%
+         family={Mateescu},
+         familyi={M\bibinitperiod},
+         given={Eduard\bibnamedelima M},
+         giveni={E\bibinitperiod\bibinitdelim M\bibinitperiod},
+      }}%
+      {{hash=ZZ}{%
+         family={Zhang},
+         familyi={Z\bibinitperiod},
+         given={Zhongge},
+         giveni={Z\bibinitperiod},
+      }}%
+      {{hash=HT}{%
+         family={Hwa},
+         familyi={H\bibinitperiod},
+         given={Terence},
+         giveni={T\bibinitperiod},
+      }}%
+    }
+    \keyw{Bacterial,Bacterial: genetics,Biological,Cell
+  Proliferation,Escherichia coli K12,Escherichia coli K12: genetics,Escherichia
+  coli K12: growth {\&} development,Escherichia coli Proteins,Escherichia coli
+  Proteins: genetics,Gene Expression,Gene Expression: physiology,Models,Protein
+  Biosynthesis,RNA}
+    \strng{namehash}{SM+1}
+    \strng{fullhash}{SMGCWMEMZZHT1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{abstract}{%
+    In bacteria, the rate of cell proliferation and the level of gene
+  expression are intimately intertwined. Elucidating these relations is
+  important both for understanding the physiological functions of endogenous
+  genetic circuits and for designing robust synthetic systems. We describe a
+  phenomenological study that reveals intrinsic constraints governing the
+  allocation of resources toward protein synthesis and other aspects of cell
+  growth. A theory incorporating these constraints can accurately predict how
+  cell proliferation and gene expression affect one another, quantitatively
+  accounting for the effect of translation-inhibiting antibiotics on gene
+  expression and the effect of gratuitous protein expression on cell growth.
+  The use of such empirical relations, analogous to phenomenological laws, may
+  facilitate our understanding and manipulation of complex biological systems
+  before underlying regulatory circuits are elucidated.%
+    }
+    \verb{doi}
+    \verb 10.1126/science.1192588
+    \endverb
+    \field{issn}{0036-8075}
+    \field{number}{6007}
+    \field{pages}{1099\bibrangedash 1102}
+    \field{title}{{Interdependence of Cell Growth and Gene Expression: Origins
+  and Consequences}}
+    \verb{url}
+    \verb http://www.ncbi.nlm.nih.gov/pubmed/21097934 https://www.sciencemag.or
+    \verb g/lookup/doi/10.1126/science.1192588
+    \endverb
+    \field{volume}{330}
+    \verb{file}
+    \verb :Users/mrazomej/GoogleDrive/papers/Science{\_}2010{\_}Scott et al.{\_
+    \verb }Interdependence of Cell Growth and Gene Expression Origins and Conse
+    \verb quences.pdf:pdf
+    \endverb
+    \field{journaltitle}{Science (80-. ).}
+    \field{year}{2010}
+    \warn{\item Invalid format of field 'month'}
+  \endentry
+
+  \entry{Deris2013}{article}{}
+    \name{author}{7}{}{%
+      {{hash=DJB}{%
+         family={Deris},
+         familyi={D\bibinitperiod},
+         given={J.\bibnamedelima Barrett},
+         giveni={J\bibinitperiod\bibinitdelim B\bibinitperiod},
+      }}%
+      {{hash=KM}{%
+         family={Kim},
+         familyi={K\bibinitperiod},
+         given={Minsu},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=ZZ}{%
+         family={Zhang},
+         familyi={Z\bibinitperiod},
+         given={Zhongge},
+         giveni={Z\bibinitperiod},
+      }}%
+      {{hash=OH}{%
+         family={Okano},
+         familyi={O\bibinitperiod},
+         given={Hiroyuki},
+         giveni={H\bibinitperiod},
+      }}%
+      {{hash=HR}{%
+         family={Hermsen},
+         familyi={H\bibinitperiod},
+         given={Rutger},
+         giveni={R\bibinitperiod},
+      }}%
+      {{hash=GA}{%
+         family={Groisman},
+         familyi={G\bibinitperiod},
+         given={Alexander},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=HT}{%
+         family={Hwa},
+         familyi={H\bibinitperiod},
+         given={Terence},
+         giveni={T\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{DJB+1}
+    \strng{fullhash}{DJBKMZZOHHRGAHT1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{abstract}{%
+    To predict the emergence of antibiotic resistance, quantitative relations
+  must be established between the fitness of drug-resistant organisms and the
+  molecular mechanisms conferring resistance. These relations are often unknown
+  and may depend on the state of bacterial growth. To bridge this gap, we have
+  investigated Escherichia coli strains expressing resistance to
+  translation-inhibiting antibiotics. We show that resistance expression and
+  drug inhibition are linked in a positive feedback loop arising from an
+  innate, global effect of drug-inhibited growth on gene expression. A
+  quantitative model of bacterial growth based on this innate feedback
+  accurately predicts the rich phenomena observed: a plateau-shaped fitness
+  landscape, with an abrupt drop in the growth rates of cultures at a threshold
+  drug concentration, and the coexistence of growing and nongrowing
+  populations, that is, growth bistability, below the threshold.%
+    }
+    \verb{doi}
+    \verb 10.1126/science.1237435
+    \endverb
+    \field{issn}{0036-8075}
+    \field{number}{6162}
+    \field{pages}{1237435\bibrangedash 1237435}
+    \field{title}{{The Innate Growth Bistability and Fitness Landscapes of
+  Antibiotic-Resistant Bacteria}}
+    \verb{url}
+    \verb https://www.sciencemag.org/lookup/doi/10.1126/science.1237435
+    \endverb
+    \field{volume}{342}
+    \verb{file}
+    \verb :Users/mrazomej/GoogleDrive/papers/Science{\_}2013{\_}Deris et al.{\_
+    \verb }The Innate Growth Bistability and Fitness Landscapes of Antibiotic-R
+    \verb esistant Bacteria.pdf:pdf
+    \endverb
+    \field{journaltitle}{Science (80-. ).}
+    \field{annotation}{%
+    This is a truly remarkable paper that Tom pointed me to. It is the missing
+  link that I was looking for to make sense of our theoretical model having to
+  do with fitness as a function of the expression of an antibiotic resistance.
+  The paper is based on a very curious observation: When we compare two
+  strains, the WT, and one with an antibiotic resistance (specific for
+  translation inhibitors) we find that WT cells growth seems for the most part
+  unaffected until the antibiotic concentration reaches the MIC (a quick drop
+  in fitness). This is in contrast with the strain with the resistance gene
+  that shows a smoother decrement in growth rate. ￼ The task of the paper is
+  to understand why WT cells have this abrupt fitness fall, while the
+  resistance take longer to die. One of the things they discover through clever
+  experiments is that for the cells with antibiotic resistance, the growth rate
+  distribution is bimodal. A fraction of the population ceases growth, while
+  the other ones keep growing. ￼ ￼ As one would expect form Terry's group,
+  they develop a quantitative model to try to understand this observation. I
+  won't write down that many details here since I will actually work through
+  the entire model on my Notability notes, but it has to do with growth
+  rate-dependent translation rates. Basically, the drug inhibits cellular
+  growth which is directly related to the antibiotic resistance expression. So
+  the more drug, the less expression of the resistance, and the less ability to
+  survive the drug. There is a bunch of fun quantitative insights that come
+  from this model. Again, I will work through the model with every factor of
+  two because this is the key that we need to understand our tetA experiments.
+  Conclusion Super fun, super insightful, and super rigorous paper from Terry's
+  group. That guy is truly a master of bacterial physiology.%
+    }
+    \field{year}{2013}
+    \warn{\item Invalid format of field 'month'}
+  \endentry
+
+  \entry{chopra2001tetracycline}{article}{}
+    \name{author}{2}{}{%
+      {{hash=CI}{%
+         family={Chopra},
+         familyi={C\bibinitperiod},
+         given={Ian},
+         giveni={I\bibinitperiod},
+      }}%
+      {{hash=RM}{%
+         family={Roberts},
+         familyi={R\bibinitperiod},
+         given={Marilyn},
+         giveni={M\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Am Soc Microbiol}%
+    }
+    \strng{namehash}{CIRM1}
+    \strng{fullhash}{CIRM1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{number}{2}
+    \field{pages}{232\bibrangedash 260}
+    \field{title}{Tetracycline antibiotics: mode of action, applications,
+  molecular biology, and epidemiology of bacterial resistance}
+    \field{volume}{65}
+    \field{journaltitle}{Microbiology and molecular biology reviews}
+    \field{year}{2001}
+  \endentry
+
+  \entry{belliveau2021fundamental}{article}{}
+    \name{author}{8}{}{%
+      {{hash=BNM}{%
+         family={Belliveau},
+         familyi={B\bibinitperiod},
+         given={Nathan\bibnamedelima M},
+         giveni={N\bibinitperiod\bibinitdelim M\bibinitperiod},
+      }}%
+      {{hash=CG}{%
+         family={Chure},
+         familyi={C\bibinitperiod},
+         given={Griffin},
+         giveni={G\bibinitperiod},
+      }}%
+      {{hash=HCL}{%
+         family={Hueschen},
+         familyi={H\bibinitperiod},
+         given={Christina\bibnamedelima L},
+         giveni={C\bibinitperiod\bibinitdelim L\bibinitperiod},
+      }}%
+      {{hash=GHG}{%
+         family={Garcia},
+         familyi={G\bibinitperiod},
+         given={Hernan\bibnamedelima G},
+         giveni={H\bibinitperiod\bibinitdelim G\bibinitperiod},
+      }}%
+      {{hash=KJ}{%
+         family={Kondev},
+         familyi={K\bibinitperiod},
+         given={Jane},
+         giveni={J\bibinitperiod},
+      }}%
+      {{hash=FDS}{%
+         family={Fisher},
+         familyi={F\bibinitperiod},
+         given={Daniel\bibnamedelima S},
+         giveni={D\bibinitperiod\bibinitdelim S\bibinitperiod},
+      }}%
+      {{hash=TJA}{%
+         family={Theriot},
+         familyi={T\bibinitperiod},
+         given={Julie\bibnamedelima A},
+         giveni={J\bibinitperiod\bibinitdelim A\bibinitperiod},
+      }}%
+      {{hash=PR}{%
+         family={Phillips},
+         familyi={P\bibinitperiod},
+         given={Rob},
+         giveni={R\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Elsevier}%
+    }
+    \strng{namehash}{BNM+1}
+    \strng{fullhash}{BNMCGHCLGHGKJFDSTJAPR1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{number}{9}
+    \field{pages}{924\bibrangedash 944}
+    \field{title}{Fundamental limits on the rate of bacterial growth and their
+  influence on proteomic composition}
+    \field{volume}{12}
+    \field{journaltitle}{Cell Systems}
+    \field{year}{2021}
+  \endentry
+
+  \entry{barrenechea2021complementary}{article}{}
+    \name{author}{4}{}{%
+      {{hash=BV}{%
+         family={Barrenechea},
+         familyi={B\bibinitperiod},
+         given={Victor},
+         giveni={V\bibinitperiod},
+      }}%
+      {{hash=VRM}{%
+         family={Vargas-Reyes},
+         familyi={V\bibinithyphendelim R\bibinitperiod},
+         given={Maryhory},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=QM}{%
+         family={Quiliano},
+         familyi={Q\bibinitperiod},
+         given={Miguel},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=MP}{%
+         family={Mil{\'o}n},
+         familyi={M\bibinitperiod},
+         given={Pohl},
+         giveni={P\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Frontiers}%
+    }
+    \strng{namehash}{BV+1}
+    \strng{fullhash}{BVVRMQMMP1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{pages}{1431}
+    \field{title}{A complementary mechanism of bacterial mRNA translation
+  inhibition by tetracyclines}
+    \field{journaltitle}{Frontiers in Microbiology}
+    \field{year}{2021}
+  \endentry
+\enddatalist
+\endinput

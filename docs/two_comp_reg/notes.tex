@@ -1,0 +1,146 @@
+%----------------------------------------------------------------------------------------
+%   PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+\documentclass[11.5pt]{report} % Change font size here
+\usepackage[margin=2.5cm]{geometry} % Change margins to 2.5cm on all sides
+\geometry{a4paper} % Set the page size to be A4 
+\usepackage{graphicx} % Required for including pictures
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float} % Allows putting an [H] in \begin{figure} to specify the exact location of the figure
+\usepackage{wrapfig} % Allows in-line images
+\graphicspath{{../figures/}}  % Specifies the directory where pictures are stored
+\usepackage[T1]{fontenc}
+\usepackage{newtxmath,newtxtext} %times new roman font
+\usepackage[utf8]{inputenc} % Unicode Characters
+\linespread{1.2} % Line spacing\frac{(\overline{w'c'})
+\usepackage[hyphenbreaks]{breakurl}
+\usepackage[hyphens]{url}
+
+%used to center the chapter headings and decrease the space before and after the heading which is unreasonable in the normal setting
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\centering}
+  {\chaptertitlename\ \thechapter}{-5pt}{\huge}
+  \titlespacing*{\chapter}{0pt}{-50pt}{10pt} 
+
+\usepackage[colorlinks=true,urlcolor=blue,citecolor=blue,linkcolor=black,bookmarks=true,pagebackref]{hyperref} % makes color citations
+\renewcommand{\backrefxxx}[3]{%
+  (\hyperlink{page.#1}{$\uparrow$#1})} %this is to add backref from bib to text, used with pagebackref^
+
+\usepackage[sort&compress,round,semicolon,authoryear]{natbib}
+\usepackage{siunitx}
+\usepackage{gensymb}
+\usepackage{pdfpages}
+\usepackage{tabularx}
+\usepackage{glossaries}
+\usepackage{bookmark}
+\setcounter{secnumdepth}{0} % only number chapters 
+\usepackage[linguistics]{forest} % to create pretty diagrams
+\usepackage[nottoc,numbib]{tocbibind}
+\usepackage{tikz-qtree}
+\usepackage{minitoc}
+\usepackage{tocloft}
+\setlength\cftparskip{0pt}
+\setlength\cftbeforechapskip{0pt}
+
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3pt plus 1pt minus 1pt}{1ex plus .2ex}
+
+\usetikzlibrary{arrows.meta}
+\tikzset{
+  my rounded corners/.append style={rounded corners=2pt},
+}
+\colorlet{linecol}{black!75}
+\setcounter{tocdepth}{1}
+
+\bookmarksetup{
+  numbered,
+  open
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftbeforeloftitleskip}{0pt}
+\setlength{\cftbeforelottitleskip}{0pt}
+
+%\renewcommand*{\thesection}{\arabic{section}}
+
+% document begin
+\begin{document}
+\paragraph{Two component signaling regulation}
+A very common motif for the regulation of antimicrobial resistance, especially efflux pumps, is the two-component signaling-regulation motif. There, a sensor protein, often bound to the membrane, phosphorylates a regulatory protein in response to a change in the environment, such as an increased concentration in antibiotics or a change in pH. Phosphorylation of the regulatory protein changes its binding affinity to DNA, and therefore its regulatory function. Often, the regulator becomes activating when phosphorylated, either by unbinding when otherwise being a repressor, or having increased binding affinity and acting as an activator. By default (both in the presence and absence of a signal), the sensor also dephosphorylates the regulator. Often, the genes encoding for the signaling and regulatory proteins are transcribed divergently from genes they are regulating, sharing binding sites for the regulators.
+\paragraph{Master Equation}
+First we simply look at the probability of having a certain number of reporter transcripts $m$ at time $t$,
+\begin{align}
+    \frac{d}{dt}P(m, t) = - (\gamma_m m + \beta_m) P(m, t)  + \gamma_m (m+1) P(m+1, t) + \beta_m P(m-1, t),
+\end{align}
+where $\gamma_m$ is the degradation rate and $\beta_m$ is the production rate. The degradation rate is going to stay constant throughout this treatment. The production rate depends on the number of regulatory proteins around, as well as there mode of regulation. 
+The production rate consists of a fixed transcription rate $\beta_m^0$ and the probability that the promoter is bound $P(\sigma_P=1)$,
+\begin{align}
+    \beta_m = \beta_m^0 P(\sigma_P=1).
+\end{align}
+We can write the probability of promoter bound in terms of its binding rate $k_\mathrm{on}^P$ and unbinding rate $k_\mathrm{on}^P$, which in steady state is
+\begin{align}
+    P(\sigma_P=1) = \frac{1}{1+\frac{k_\mathrm{off}^P}{k_\mathrm{on}^P}}.
+\end{align}
+The binding rate should depend on the concentration of the corresponding molecule. We can write $k_\mathrm{on}^M = Mk_{\mathrm{on},0}^M$, where M is the molecule of interest. The unbinding rate however depends only on the binding energy of the molecule, not its copy number. Assume that the binding energy of the polymerase depends on the status of regulator binding. The regulator can be in two possible states, phosphorylated and unphosphorylated, each with its own unbinding rate. Let's assume there is one possible binding site, then there are three possible states:
+\begin{align*}
+    P(\sigma_R=0,\sigma_{RP}=0)&\quad\text{no activator bound},\\
+    P(\sigma_R=1,\sigma_{RP}=0)&\quad\text{unphosphorylated activator bound},\\
+    P(\sigma_R=0,\sigma_{RP}=1)&\quad\text{phosphorylated activator bound}.
+\end{align*}
+We can write the unbinding rate as average over all the possible regulator site states,
+\begin{align}
+    k_\mathrm{off}^P = k_\mathrm{off}^{P,0}P(\sigma_R=0,\sigma_{RP}=0) + k_\mathrm{off}^{P,R}P(\sigma_R=1,\sigma_{RP}=0) + k_\mathrm{off}^{P,RP}P(\sigma_R=0,\sigma_{RP}=1).
+\end{align}
+Using the time evolution equation for $P(\sigma_R=1,\sigma_{RP}=0, t)$ and assuming steady state, we solve for $P(\sigma_R=0,\sigma_{RP}=0)$ in terms of $P(\sigma_R=0,\sigma_{RP}=0)$,
+\begin{align}
+    P(\sigma_R=1,\sigma_{RP}=0) = \frac{R\ k_{\mathrm{on}, 0}^R}{k_\mathrm{off}^R} P(\sigma_R=0,\sigma_{RP}=0)
+\end{align}
+where $k_\mathrm{on/off}^R$ are the binding and unbinding rates of the regulator to the binding site.
+The same step can be done with $P(\sigma_R=0,\sigma_{RP}=1, t)$,
+\begin{align}
+    P(\sigma_R=1,\sigma_{RP}=0) = \frac{R_P\ k_{\mathrm{on}, 0}^{RP}}{k_\mathrm{off}^{RP}} P(\sigma_R=0,\sigma_{RP}=0),
+\end{align}
+where $k_\mathrm{on/off}^{RP}$ are the binding and unbinding rates of the phosphorylated regulator to the binding site.
+Using the condition that the probabilities for the states of the regulator binding site have to add up to one, we can solve for $P(\sigma_R=0,\sigma_{RP}=0)$ in terms of rates,
+\begin{align}
+    1 =& P(\sigma_R=0,\sigma_{RP}=0) + P(\sigma_R=1,\sigma_{RP}=0) + P(\sigma_R=0,\sigma_{RP}=1),\nonumber\\
+    =&P(\sigma_R=0,\sigma_{RP}=0)\left( 1 + \frac{R\ k_{\mathrm{on}, 0}^R}{k_\mathrm{off}^R} + \frac{R_P\ k_{\mathrm{on}, 0}^{RP}}{k_\mathrm{off}^{RP}} \right)\nonumber\\
+    \Rightarrow P(\sigma_R=0,\sigma_{RP}=0) = & \left( 1 + \frac{R\ k_{\mathrm{on}, 0}^R}{k_\mathrm{off}^R} + \frac{R_P\ k_{\mathrm{on}, 0}^{RP}}{k_\mathrm{off}^{RP}} \right)^{-1}
+\end{align}
+We repeat this step for the other two distributions and get the following results:
+\begin{align}
+    P(\sigma_R=1,\sigma_{RP}=0) &= \frac{1}{1+\frac{k_\mathrm{off}^R}{R\ k_{\mathrm{on}, 0}^R} + \frac{R_P\ k_{\mathrm{on}, 0}^{RP}k_\mathrm{off}^{R}}{R\ k_{\mathrm{on}, 0}^R k_\mathrm{off}^{RP}}},\\
+    P(\sigma_R=0,\sigma_{RP}=1) &= \frac{1}{1+\frac{k_\mathrm{off}^{RP}}{R_P\ k_{\mathrm{on}, 0}^{RP}} + \frac{k_\mathrm{off}^{RP}R\ k_{\mathrm{on}, 0}^R}{k_\mathrm{off}^R\ R_P\ k_{\mathrm{on}, 0}^{RP}}}.
+\end{align}
+We define $\omega^\alpha = \alpha\ k_\mathrm{on, 0}^\alpha/k_\mathrm{off}^\alpha$ as the ratio of binding to unbinding rate for molecule $\alpha$. Then, we can finally write the unbinding rate for the polymerase as 
+\begin{align}
+    k_\mathrm{off}^P = \frac{k_\mathrm{off}^{P,0}+ \omega^R k_\mathrm{off}^{P,R} + \omega^{RP}k_\mathrm{off}^{P,RP}}{1+\omega^R + \omega^{RP}}.
+\end{align}
+Let's have a look at the full master equation containing all our variables and parameters
+\begin{align}
+    \frac{d}{dt} P(m, R, R_P, S, S_b, t) = &\underbrace{\frac{1}{1+\frac{k_\mathrm{off}^P(R, R_P)}{P\ k_{\mathrm{on}, 0}^P}}\left[\beta_m^0P(..,m-1,...) + \beta_R^0 P(..., R-1, ...) +  \beta_S^0 P(..., S-1, ...)\right]}_\mathrm{Production}\nonumber\\
+    & + \underbrace{\gamma_m (m+1) P(...,m+1,...) + \gamma_R (R+1) P(...,R+1,...) + \gamma_S (S+1) P(...,S+1,...)}_\mathrm{Degradation}\nonumber\\
+    & + \underbrace{(R_P+1) (k_{dp}^0 S + k_{dp}^b S_b)P(..., R-1, R_P+1) + (R+1) (k_p^0 S + k_p^b S_b) P(..., R+1, R_P-1)}_\mathrm{De-/Phosphorylation}\nonumber\\
+    & + \underbrace{nk_{\mathrm{on}, 0}^S(S+1)P(...,S+1, S_b-1) + k_\mathrm{off}^S(S_b+1)P(...,S-1, S_b+1,...)}_\mathrm{Signal\ binding/unbinding}\nonumber\\
+    - &P(...)\left[\underbrace{\frac{1}{1+\frac{k_\mathrm{off}^R}{R\ k_{\mathrm{on}, 0}^R}} \left( \beta_m^0 + \beta_R^0 + \beta_S^0 \right)}_\mathrm{Production} + \underbrace{m\gamma_m + R \gamma_R + S \gamma_S}_\mathrm{Degradation} + \underbrace{k_{\mathrm{on}, 0}^S n S + k_\mathrm{off}^S S_b}_\mathrm{Signal\ binding/unbinding}\right. \\ 
+    & + \left. \underbrace{R_P(k_{dp}^0 S + k_{dp}^b S_b) + R(k_p^0 S + k_p^b S_B)}_\mathrm{De-/Phosphorylation}\right],
+\end{align}
+where $P(...,x, ...)$ notes that all variables other than $x$ are unchanged.
+In the end we are only interested in the probability distribution of the reporter counts. Therefore, we marginalize out the other variables, starting with the sensors,
+\begin{align}
+    \frac{d}{dt}P(m, R, R_P, t) =& \sum_{S, S_b} \frac{d}{dt}P(m, R, R_P, S, S_b, t) \nonumber\\
+    & = \frac{1}{1+\frac{k_\mathrm{off}^P(R, R_P)}{P\ k_{\mathrm{on}, 0}^P}}\left[\beta_m^0P(..,m-1,...) + \beta_R^0 P(..., R-1, ...) \right]\\
+    & + \gamma_m (m+1) P(...,m+1,...) + \gamma_R (R+1) P(...,R+1,...)\nonumber\\
+    &- P(...)\left[\frac{1}{1+\frac{k_\mathrm{off}^R}{R\ k_{\mathrm{on}, 0}^R}} \left( \beta_m^0 + \beta_R^0+ m\gamma_m + R \gamma_R\right)\right]\nonumber\\
+    & + \frac{\beta_s^0}{1+\frac{k_\mathrm{off}^P(R, R_P)}{P\ k_{\mathrm{on}, 0}^P}} \sum_S\left[ P(...,S-1,...) - P(...,S,...) \right]\\
+    & + \gamma_S \sum_S\left[ (S+1)P(...,S+1,...) - S P(...,S,...) \right]
+\end{align}
+
+\end{document}

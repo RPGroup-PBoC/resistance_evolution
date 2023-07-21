@@ -1,8 +1,5 @@
 using XLSX, CairoMakie, DataFrames, ColorSchemes, CSV, Statistics, ...plotting_style, Colors
 
-CairoMakie.activate!()
-plotting_style.default_makie!()
-
 
 
 function plot_layout(file)
@@ -84,7 +81,7 @@ function plot_layout(file)
         end
 
         text!(ax, string.(data[!, feature]), position = Point.(data.col_code, data.row_code), align = (:center, :center),
-        offset = (0, 0), color = :black, textsize=3)
+        offset = (0, 0), color = :black, fontsize=3)
         # Set plot title
         ax.title = feature
         ax.xgridcolor="white"
@@ -170,11 +167,71 @@ function pre_processing(file)
         append!(df, DataFrames.dropmissing(_df))
     end
 
+    fig = Figure(resolution=(1200, 800))
+    g = fig[1, 1] = GridLayout()
+    row_dict = Dict(
+        'A' => 1, 
+        'B' => 2,
+        'C' => 3,
+        'D' => 4,
+        'E' => 5,
+        'F' => 6,
+        'G' => 7,
+        'H' => 8,
+    )
+    ax_list = []
+    for well in unique(df.well)
+        x = df[df.well .== well, :time_min]
+        y = df[df.well .== well, :OD600]
+        row = row_dict[well[1]]
+        col = parse(Int64, well[2:end])
+        ax = Axis(
+            g[row, col+1],
+            xticklabelsize=8,
+            yticklabelsize=8
+        )
+        if col != 1
+            hideydecorations!(ax, grid=false, label=false, minorgrid=false)
+        end
+        if row != 8
+            hidexdecorations!(ax, grid=false, label=false, minorgrid=false)
+        end
+        lines!(ax, x, y)
+        push!(ax_list, ax)
+    end
+
+ 
+
+    # Link axes
+    linkyaxes!(ax_list...)
+    linkxaxes!(ax_list...)
+
+    # Add labels for all x and y axes
+    Label(g[5, 1], "OD600", valign = :center, halign=:right, rotation=pi/2, padding=(30, 30, 30, 30), tellwidth=false, tellheight=false)
+    Label(g[9, 1:12, Top()], "time [min]", valign = :top, halign=:center)#, rotation=pi/2)
+    for i in 1:12
+        Label(g[1, i+1, Top()], "$i", valign = :top, padding=(0, 0, 5, 0))#, rotation=pi/2))
+    end
+    for (i, x) in enumerate(['A', 'B', 'C', 'D' , 'E', 'F', 'G', 'H'])
+        Label(g[i, 14], "$x", tellheight=false, padding=(10, 0, 0, 0))
+    end
+
+    colsize!(g, 1, 50)
+    rowsize!(g, 9, 20)
+
+    # Remove any gap between plots
+    colgap!(g, 0)
+    rowgap!(g, 0)
+
+    CairoMakie.save("/$home_dir/processing/plate_reader/$file/well_plate_growth_curves.pdf", fig)
+
     # Blank normalization
     df_blank = df[df.strain .== "blank", :]
     OD_mean = df_blank[!, :OD600] |> mean
-    insertcols!(df, 4, :OD600_norm => df.OD600 .- OD_mean)
+    insertcols!(df, 4, :OD600_norm => max.(df.OD600 .- OD_mean,0))
+   #df.OD600_norm = [maximum(x, 0) for x in df.OD600_norm]
     df = df[df.strain .!= "blank", :]
+    df = df[df.strain .!= "n", :]
 
 
     # Check if output directory exists
@@ -186,7 +243,7 @@ function pre_processing(file)
     CSV.write("/$home_dir/processing/plate_reader/$file/growth_plate.csv", df)
 
     # Make plot
-
+    insertcols!(df, 1, :tc => [parse(Float64, split(x, "_")[1]) for x in df.pos_selection])
     l = df.strain |> unique |> length
     fig = Figure(resolution=(800, 400 * l))
     df_means = DataFrames.DataFrame()
@@ -201,7 +258,6 @@ function pre_processing(file)
         ax2.xlabel = "time [min]"
         ax2.ylabel = "log(normalized OD600)"
         sub_df = df[df.strain .== strain, :]
-        insertcols!(sub_df, 1, :tc => [parse(Float64, split(x, "_")[1]) for x in sub_df.pos_selection])
 
         for tc in sub_df.tc |>  unique |> sort
             sub_sub_df = sub_df[sub_df.tc .== tc, :]
@@ -224,6 +280,47 @@ function pre_processing(file)
 
     CSV.write("/$home_dir/processing/plate_reader/$file/growth_mean.csv", df_means)
 
-    CairoMakie.save("/$home_dir/processing/plate_reader/$file/all_curves.pdf", fig)
+    CairoMakie.save("/$home_dir/processing/plate_reader/$file/all_curves_by_strains.pdf", fig)
+
+
+    # Make plot by concentrations
+    l = df.tc |> unique |> length
+    fig = Figure(resolution=(800, 400 * l))
+    df_means = DataFrames.DataFrame()
+
+    for (i, (tc, color)) in enumerate(zip(df.tc |> unique |> sort, ColorSchemes.seaborn_colorblind))
+        ax1 = Axis(fig[i, 1])
+        ax1.xlabel = "time [min]"
+        ax1.ylabel = "normalized OD600"
+        ax1.title = "tetracycline: $tc [µg/ml]"
+
+        ax2 = Axis(fig[i, 2])
+        ax2.xlabel = "time [min]"
+        ax2.ylabel = "log(normalized OD600)"
+        sub_df = df[df.tc .== tc, :]
+
+        for strain in sub_df.strain |>  unique |> sort
+            sub_sub_df = sub_df[sub_df.strain .== strain, :]
+            _gdf = DataFrames.groupby(sub_sub_df, :time_min)
+            mean_df = combine(_gdf, :OD600_norm => (x -> (OD_mean=mean(x), OD_std=std(x))) => AsTable)
+            insertcols!(mean_df, "strain"=>strain, "pos_selection"=>tc)
+            append!(df_means, mean_df)
+            lines!(ax1, mean_df.time_min, mean_df.OD_mean, label="$strain")
+            scatter!(ax1, mean_df.time_min, mean_df.OD_mean, markersize=5)
+
+            # plot error bars more sparse
+            errorbars!(ax1, mean_df.time_min[1:5:end], mean_df.OD_mean[1:5:end], mean_df.OD_std[1:5:end])
+            
+            lines!(ax2, mean_df.time_min, log.(mean_df.OD_mean), label="$strain")
+            scatter!(ax2, mean_df.time_min, log.(mean_df.OD_mean), markersize=5)
+            #errorbars!(ax2, mean_df.time_min, log.(mean_df.OD_mean), log.(mean_df.OD_std))
+        end
+        fig[i, 3] = axislegend("strain")#, merge = merge, unique = unique)
+    end
+
+    CSV.write("/$home_dir/processing/plate_reader/$file/growth_mean.csv", df_means)
+
+    CairoMakie.save("/$home_dir/processing/plate_reader/$file/all_curves_by_tc.pdf", fig)
+
     return fig
 end

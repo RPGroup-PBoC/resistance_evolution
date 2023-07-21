@@ -70,6 +70,8 @@ function run_exponential_model(
         file; 
         lower_bound=exp(-4), 
         upper_bound=exp(-2),
+        lower_bound_t=nothing, 
+        upper_bound_t=nothing,
         λ_params::AbstractVector=[0, 0.005],
         y0_params::AbstractVector=[0, 0.001],
         σ_params::AbstractVector=[0, 0.01]
@@ -117,8 +119,27 @@ function run_exponential_model(
         println("  Running Exponential Growth Model...")
 
         ind1 = findfirst(t -> t > lower_bound, y)
-        ind2 = findfirst(t -> t > upper_bound, y)
-        if ~isnothing(ind1) && ~isnothing(ind2)
+        ind2 = nothing
+        
+
+        if ~isnothing(lower_bound_t) && ~isnothing(ind1)
+            ind1 = max(ind1, findfirst(t -> t > lower_bound_t, x))
+        end
+
+        if ~isnothing(ind1)
+            ind2 = findfirst(t -> t > upper_bound, y[ind1:end])
+        end
+
+        if isnothing(ind2)
+            ind2 = length(y)
+        else
+            ind2 = ind1 + ind2
+        end
+        if ~isnothing(upper_bound_t)
+            ind2 = min(ind2, findfirst(t -> t > upper_bound_t, x))
+        end
+
+        if ~isnothing(ind1) && ~isnothing(ind2) && (ind2 > ind1)
             x_exp = x[ind1:ind2]
             y_exp = y[ind1:ind2]
 

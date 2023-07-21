@@ -1,0 +1,99 @@
+\documentclass [11pt]{article}
+
+\usepackage{setspace}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{setspace}
+\usepackage{amsthm}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{color}
+\usepackage[dvipsnames]{xcolor}
+\definecolor{cuteBlue}{rgb}{0.258, 0.387, 0.574}
+\definecolor{cuteGreen}{rgb}{0, 0.3, 0}
+\usepackage{cancel}
+\usepackage{comment}
+\usepackage[framemethod=TikZ]{mdframed}
+\usepackage{enumitem}
+\usepackage{wasysym}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{fixltx2e}
+\usepackage{threeparttable}
+\usepackage{titling}
+\usepackage{zref-base}
+\usepackage{makecell}
+\usepackage{array}
+\usepackage{hhline}
+\usepackage{titlesec}
+\usepackage{gensymb}
+
+% To make jumping between equation, figure, citation references easier
+\usepackage[colorlinks=true, urlcolor=cuteBlue, citecolor=cuteGreen, linkcolor=black]{hyperref}
+
+% To make caption labels (i.e. Figure 1, Figure 2...) bold and
+% make all caption text small
+\usepackage[labelfont=bf, font=small]{caption}
+
+% For strike-out text during editing
+\usepackage[normalem]{ulem}
+
+%Latin accents
+\usepackage[utf8]{inputenc}
+
+%subfigures
+\usepackage{caption}
+
+% Add author affiliations
+\usepackage{authblk}
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Margins and spacings
+\setlength{\evensidemargin}{0.0cm}
+\setlength{\oddsidemargin}{0.0cm}
+\setlength{\topmargin}{-1.0cm}
+\setlength{\textwidth}{17cm}
+\setlength{\textheight}{22cm}
+\setlength{\parskip}{2.5mm}
+\reversemarginpar
+\marginparsep  0.1in
+\marginparwidth 0.7in
+
+% Give more spacing in equation arrays
+\setlength{\jot}{10pt}
+
+% Allow page breaks in multiline equations
+\allowdisplaybreaks
+
+% Set up title spacing so we don't waste so much space
+\setlength{\droptitle}{-8em}
+\date{\vspace{-5em}}  % No date will appear in title.
+
+% Spacing between section headings and text
+\titlespacing\section{0pt}{12pt plus 4pt minus 2pt}{-2pt plus 2pt minus 2pt}
+\titlespacing\subsection{0pt}{12pt plus 4pt minus 2pt}{-2pt plus 2pt minus 2pt}
+\titlespacing\subsubsection{0pt}{12pt plus 4pt minus 2pt}{-2pt plus 2pt minus 2pt}
+
+% Convenient micron symbol
+\newcommand{\micron}{{\textmu}m}
+
+% No excess spacing for lists
+\setlist{itemsep=0pt, topsep=0pt}
+
+% Allow paragraph indentations in lists
+\setitemize{listparindent=\parindent}
+\setenumerate{listparindent=\parindent}
+
+% Column type for tables with nice spacing
+\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
+\newcolumntype{N}{@{}m{0pt}@{}}
+
+% Easier equation writing
+\newcommand{\RM}[1]{\mathrm{#1}}
+\newcommand{\purple}[1]{\textcolor{purple}{#1}}
