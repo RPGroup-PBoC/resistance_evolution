@@ -50,9 +50,11 @@ end
             file; 
             lower_bound=exp(-4), 
             upper_bound=exp(-2),
+            lower_bound_t=nothing, 
+            upper_bound_t=nothing,
             λ_params::AbstractVector=[0, 0.005],
             y0_params::AbstractVector=[0, 0.001],
-            σ_params::AbstractVector=[-3, 2]
+            σ_params::AbstractVector=[0, 0.01]
         )
 
 Fit an exponential model to a dataset from the plate reader. Can give lower and upper bound.
@@ -60,12 +62,15 @@ Fit an exponential model to a dataset from the plate reader. Can give lower and 
 # Parameters
 ------------
 - `file`: Filename of data. Has to be string.
-- `lower_bound`: lower bound used for inference of exponential growth model, default exp(-4).
-- `upper_bound`: lower bound used for inference of exponential growth model, default exp(-2).
+- `lower_bound`: lower bound of OD used for inference of exponential growth model, default exp(-4).
+- `upper_bound`: upper bound of OD used for inference of exponential growth model, default exp(-2).
+- `lower_bound_t`: lower bound of time used for inference of exponential growth model , 
+- `upper_bound_t`: lower bound of time used for inference of exponential growth model,
 - `λ_params` : parameters for HalfNormal prior for growth rate, default `μ=0`, `σ=0.05`.
 - `y0_params` : parameters for HalfNormal prior for initial OD, default `μ=0`, `σ=0.001`.
 - `σ_params` : parameters for LogNormal prior for likelihood standard deviation, default `μ=-3`, `σ=2`.
 """
+
 function run_exponential_model(
         file; 
         lower_bound=exp(-4), 
@@ -201,6 +206,193 @@ function run_exponential_model(
     return fig_exp
 end
 
+#=
+"""
+    function run_exponential_model_stan(
+            file; 
+            lower_bound=exp(-4), 
+            upper_bound=exp(-2),
+            lower_bound_t=nothing, 
+            upper_bound_t=nothing,
+            λ_params::AbstractVector=[0, 0.005],
+            y0_params::AbstractVector=[0, 0.001],
+            σ_params::AbstractVector=[0, 0.01]
+        )
+
+Fit an exponential model to a dataset from the plate reader. Can give lower and upper bound. Uses Stan.
+
+# Parameters
+------------
+- `file`: Filename of data. Has to be string.
+- `lower_bound`: lower bound of OD used for inference of exponential growth model, default exp(-4).
+- `upper_bound`: upper bound of OD used for inference of exponential growth model, default exp(-2).
+- `lower_bound_t`: lower bound of time used for inference of exponential growth model , 
+- `upper_bound_t`: lower bound of time used for inference of exponential growth model,
+- `λ_params` : parameters for HalfNormal prior for growth rate, default `μ=0`, `σ=0.05`.
+- `y0_params` : parameters for HalfNormal prior for initial OD, default `μ=0`, `σ=0.001`.
+- `σ_params` : parameters for LogNormal prior for likelihood standard deviation, default `μ=-3`, `σ=2`.
+"""
+
+function run_exponential_model_stan(
+        file; 
+        lower_bound=exp(-4), 
+        upper_bound=exp(-2),
+        lower_bound_t=nothing, 
+        upper_bound_t=nothing,
+        λ_params::AbstractVector=[-2, 2],
+        y0_params::AbstractVector=[-5, 2],
+        σ_params::AbstractVector=[-2, 2]
+    )
+    stan_code = stan_code = "
+        data{
+            int N;
+            vector[N] t;
+            vector[N] y;
+        }
+        
+        parameters{
+            real b;
+            real log10_lambda;
+            real log10_sigma;
+        }
+        
+        transformed parameters{
+            real lambda = 10^log10_lambda;
+            real<lower=0> sigma = 10^log10_sigma;
+        }
+        
+        model{
+            log10_lambda ~ normal($(λ_params[1]), $(λ_params[2]));
+            log10_sigma ~ normal($(σ_params[1]), $(σ_params[2]));
+            b ~ normal($(y0_params[1]), $(y0_params[2]));
+            y ~ normal(lambda * t + b, sigma);
+        }
+        "
+    dir = @__DIR__
+    home_dir = joinpath(split(dir, '/')[1:end-2]...)
+
+    # Find date
+    date = split(file, "_")[1]
+    run = split(file, "_")[2]
+
+    # Create file path
+    file_path ="/$home_dir/processing/plate_reader/$file/growth_plate.csv"
+
+    # Read output
+    data_df = CSV.read(file_path, DataFrame)
+    # Get wells
+    wells = data_df.well |> unique
+    wells = wells
+
+    # Define plotting canvas
+    fig_exp = Figure(resolution=(600, 350*length(wells)))
+
+    # Define DataFrames
+    return_sum_df = DataFrames.DataFrame()
+
+    println("Analyzing data...")
+    for (i, well) in enumerate(wells)
+        println(" Running well $well...")
+        # Choosing data for well
+        sub_df = data_df[data_df.well .== well, :]
+        x = sub_df[!, "time_min"]
+        y = sub_df[!, "OD600_norm"]
+        
+        # Create dataframe for maximum growth rate
+        #strain, rep = split(unique(sub_df.strain, "_")[1])[1, 2]
+        _df = DataFrames.DataFrame(
+            strain=sub_df.strain |> unique,
+            pos_selection=sub_df.pos_selection |> unique, 
+            well=well,
+        )
+
+        # Run Exponential model
+        println("  Running Exponential Growth Model...")
+
+        ind1 = findfirst(t -> t > lower_bound, y)
+        ind2 = nothing
+        
+
+        if ~isnothing(lower_bound_t) && ~isnothing(ind1)
+            ind1 = max(ind1, findfirst(t -> t > lower_bound_t, x))
+        end
+
+        if ~isnothing(ind1)
+            ind2 = findfirst(t -> t > upper_bound, y[ind1:end])
+        end
+
+        if isnothing(ind2)
+            ind2 = length(y)
+        else
+            ind2 = ind1 + ind2
+        end
+        if ~isnothing(upper_bound_t)
+            ind2 = min(ind2, findfirst(t -> t > upper_bound_t, x))
+        end
+
+        if ~isnothing(ind1) && ~isnothing(ind2) && (ind2 > ind1)
+            x_exp = x[ind1:ind2]
+            y_exp = y[ind1:ind2]
+            
+
+            model = inference.exponential(
+                λ_params = λ_params, 
+                y0_params = y0_params, 
+                σ_params = σ_params
+                )
+            chn, gen = inference.evaluate(x_exp, log.(y_exp), model)
+
+            insertcols!(
+                _df, 
+                :exp_growth_rate=>mean(chn[:λ]),
+            )
+        else
+            continue
+        end
+        append!(return_sum_df, _df)
+        println(mean(_df.exp_growth_rate))
+
+        # Prepare axes
+        ax = Axis(fig_exp[i, 1])
+        ax.xlabel = "time [min]"
+        ax.ylabel = "OD 600"
+
+        ax_log = Axis(fig_exp[i, 2])
+        ax_log.xlabel = "time [min]"
+        ax_log.ylabel = "log OD 600"
+
+        y_ppc = [g["y_ppc"] |> vec for g in gen]
+
+        ax = Jedi.viz.predictive_regression(
+            hcat(y_ppc...),
+            x_exp,
+            ax,
+            data=[x_exp, y_exp],
+            data_kwargs=Dict(:markersize => 6)
+            )
+
+        ax_log = Jedi.viz.predictive_regression(
+            log.(hcat(y_ppc...)),
+            x_exp,
+            ax_log,
+            data=[x_exp, log.(y_exp)],
+            data_kwargs=Dict(:markersize => 6)
+            )
+        mean_λ = mean(chn[:λ])
+        mean_y0 = mean(chn[:y0]) 
+        mean_sigma = mean(chn[:σ])
+        ax.title = "$well, $(unique(sub_df.strain)[1]), $(unique(sub_df.pos_selection)[1])"
+        ax_log.title = @sprintf "%.5f, %.5f, %.5f" mean_λ mean_y0 mean_sigma
+            
+    end
+    insertcols!(return_sum_df, 1, :run=>run)
+    CSV.write("/$home_dir/processing/plate_reader/$file/exp_analysis_summary.csv", return_sum_df)
+
+    save("/$home_dir/processing/plate_reader/$file/exp_model_analysis.pdf", fig_exp) 
+
+    return fig_exp
+end
+=#
     
     #=
     fig = Figure(resolution=(800, 400 * (data_df.strain |> unique |> length)))
